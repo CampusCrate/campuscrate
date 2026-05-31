@@ -1,0 +1,48 @@
+# ==========================================
+# Python Bytecode & Cache
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# Environment Variables & Secrets (CRITICAL)
+# ==========================================
+.env
+.env.local
+.env.*
+env/
+venv/
+ENV/
+.venv/
+
+# ==========================================
+# Django Specific Leftovers
+# ==========================================
+# Local development database (if using SQLite)
+*.sqlite3
+
+# User-uploaded media files (Don't push student ID uploads or listing images to GitHub!)
+/media/
+/media_root/
+
+# Collected static files (These should be generated on your server/hosting platform)
+/static/
+/staticfiles/
+
+# Django debug toolbar or logging outputs
+*.log
+celerybeat-schedule
+
+# ==========================================
+# OS & IDE Specific Files
+# ==========================================
+.DS_Store
+Thmubs.db
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
