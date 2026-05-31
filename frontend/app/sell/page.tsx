@@ -41,17 +41,6 @@ export default function SellPage() {
             <div className="bg-gray-900 h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
           </div>
         </div>
-        
-        {/* Safe Campus Box - only on step 1 */}
-        {step === 1 && (
-          <div className="bg-[#f0f7ff] border border-blue-100 rounded-[1.25rem] p-5 mb-8 flex items-start gap-4">
-            <div className="bg-blue-100 p-2 rounded-full mt-0.5"><ShieldCheck className="w-5 h-5 text-blue-800" /></div>
-            <div>
-              <h3 className="font-semibold text-blue-950 mb-1 leading-tight">Trusted Campus Trading</h3>
-              <p className="text-[14px] text-blue-900/80 leading-relaxed font-medium">Your listing will only be shown to peers who have completed active student verification. Meet safely on campus.</p>
-            </div>
-          </div>
-        )}
 
         {/* Wizard Form */}
         <div className="bg-white border border-gray-200/80 rounded-[1.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative min-h-[500px] flex flex-col">
