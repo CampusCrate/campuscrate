@@ -1,7 +1,8 @@
 import { Heart, BadgeCheck } from "lucide-react";
 import Link from "next/link";
 
-interface ListingCardProps {
+export interface ListingCardProps {
+  id: string;
   imageSrc?: string;
   category: string;
   title: string;
@@ -11,15 +12,15 @@ interface ListingCardProps {
 }
 
 export default function ListingCard({
-  imageSrc, category, title, price, condition, location
+  id, imageSrc, category, title, price, condition, location
 }: ListingCardProps) {
   return (
-    <Link href="/item/1" className="group cursor-pointer flex flex-col h-full w-full">
+    <Link href={`/item/${id}`} className="group cursor-pointer flex flex-col h-full w-full">
       <div className="relative aspect-[4/3] w-full bg-[#f8f9fa] rounded-2xl mb-4 overflow-hidden shrink-0">
         {imageSrc ? (
           <img src={imageSrc} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300"></div>
+          <div className="w-full h-full flex items-center justify-center text-gray-300">No Image</div>
         )}
         
         {/* Only top right heart icon */}
@@ -36,7 +37,7 @@ export default function ListingCard({
         </div>
         
         <h3 className="font-semibold text-gray-900 text-[15px] leading-snug mb-1 line-clamp-2">{title}</h3>
-        <span className="font-bold text-[17px] text-gray-900 block">{price}</span>
+        <span className="font-bold text-[17px] text-gray-900 block">KES {parseFloat(price).toLocaleString()}</span>
         
         <div className="flex items-center gap-1.5 text-[13px] font-medium text-gray-500 mt-auto pt-3">
           <BadgeCheck className="w-[14px] h-[14px] text-blue-600 shrink-0" />

@@ -1,8 +1,21 @@
+"use client";
+
 import Navbar from "../../../components/Navbar";
-import { BadgeCheck, MapPin, MessageCircle, ArrowLeft } from "lucide-react";
+import { BadgeCheck, MapPin, MessageCircle, ArrowLeft, Copy, Check, Phone } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function ItemDetail() {
+  const [showContact, setShowContact] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const sellerPhone = "+254 712 345 678";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(sellerPhone);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900 pb-20 overflow-x-hidden">
       <Navbar />
@@ -59,10 +72,27 @@ export default function ItemDetail() {
               </div>
             </div>
 
-            <button className="w-full bg-gray-900 hover:bg-black text-white font-bold text-[1rem] md:text-[1.1rem] py-3.5 md:py-4 rounded-xl flex items-center justify-center gap-2 transition-all mb-8 md:mb-10 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)]">
-              <MessageCircle className="w-[18px] h-[18px] md:w-[20px] md:h-[20px]" />
-              Message Seller
-            </button>
+            {/* Contact Action */}
+            <div className="mb-8 md:mb-10">
+              <div className="w-full bg-[#f8f9fa] border border-gray-200 p-4 md:p-5 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white p-2 md:p-2.5 rounded-lg border border-gray-100 shadow-sm">
+                    <Phone className="w-5 h-5 text-gray-700" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] md:text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Phone Number</p>
+                    <p className="text-[16px] md:text-[18px] font-bold text-gray-900">{sellerPhone}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleCopy}
+                  className="w-full md:w-auto bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-[13px] md:text-[14px] py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <span className="text-green-600">Copied!</span> : "Copy Number"}
+                </button>
+              </div>
+            </div>
 
             {/* Minimal Description */}
             <div>

@@ -3,18 +3,19 @@
 import { useState } from "react";
 import { Search, MapPin } from "lucide-react";
 import CustomSelect from "./CustomSelect";
+import { useUniversities } from "../hooks/useUniversities";
 
 export default function Hero() {
-  const [university, setUniversity] = useState("mmu");
+  const [university, setUniversity] = useState("");
+  const { data: universitiesData = [] } = useUniversities();
   
   const uniOptions = [
-    { label: "Multimedia University", value: "mmu" },
-    { label: "Nairobi University", value: "uon" },
-    { label: "Strathmore University", value: "strath" }
+    { label: "All Campuses", value: "" },
+    ...universitiesData.map(u => ({ label: u.name, value: u.slug }))
   ];
 
   return (
-    <section className="py-12 md:py-20 px-6 max-w-7xl mx-auto">
+    <section className="py-8 md:py-10 px-6 max-w-7xl mx-auto">
       <div className="max-w-3xl">
         <h1 className="text-3xl md:text-[2.5rem] lg:text-[2.5rem] font-bold text-gray-900 tracking-tight leading-[1.15] mb-4 md:mb-5">
           Buy & sell on campus, <br className="hidden lg:block"/>

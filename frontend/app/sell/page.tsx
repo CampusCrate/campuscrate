@@ -70,17 +70,6 @@ export default function SellPage() {
                     placeholder="Select a category..."
                   />
                 </div>
-
-                <div>
-                  <label className="block text-[14px] font-bold text-gray-800 mb-3">Condition</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {['Brand New', 'Like New', 'Good', 'Fair'].map(c => (
-                      <button type="button" key={c} className="border border-gray-200 rounded-xl py-3 text-[14px] font-bold text-gray-400 hover:border-gray-300 hover:text-gray-900 hover:bg-[#f8f9fa] transition-all focus:ring-2 focus:ring-gray-200 focus:border-gray-900 focus:text-gray-900 focus:bg-[#f8f9fa]">
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           )}
