@@ -16,7 +16,6 @@ class University(models.Model):
 
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # Mapping to external 'better-auth' system
     better_auth_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     
     university = models.ForeignKey(University, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')

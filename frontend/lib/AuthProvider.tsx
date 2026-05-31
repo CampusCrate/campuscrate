@@ -11,6 +11,7 @@ interface User {
   university: any;
   profile_picture: string | null;
   phone_number: string;
+  is_superuser: boolean;
 }
 
 interface AuthContextType {
@@ -35,7 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const res = await fetch("http://localhost:8000/api/v1/auth/me/", {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${API_URL}/api/v1/auth/me/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -43,10 +45,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setUser(data);
-        } else {
-          // Token might be expired, need refresh component logic, but we'll logout for now
+        } else if (res.status === 401) {
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (refreshToken) {
+            const refreshRes = await fetch(`${API_URL}/api/v1/auth/refresh/`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refresh: refreshToken }),
+            });
+            
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              localStorage.setItem("accessToken", refreshData.access);
+              
+              // Second attempt to fetch /me/
+              const retryRes = await fetch(`${API_URL}/api/v1/auth/me/`, {
+                headers: { Authorization: `Bearer ${refreshData.access}` },
+              });
+              
+              if (retryRes.ok) {
+                const retryData = await retryRes.json();
+                setUser(retryData);
+                setIsPending(false);
+                return; // Early return to avoid wiping tokens in the fallthrough
+              }
+            }
+          }
+          // If token was invalid or missing, expire session
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
+          setUser(null);
         }
       } catch (e) {
         console.error("Failed to fetch user", e);
@@ -58,11 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
-  const login = (access: string, refresh: string) => {
+  const login = (access: string, refresh: string, redirectRoute: string = "/") => {
     localStorage.setItem("accessToken", access);
     localStorage.setItem("refreshToken", refresh);
     // Reload UI
-    window.location.href = "/";
+    window.location.href = redirectRoute;
   };
 
   const logout = () => {

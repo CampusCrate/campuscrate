@@ -1,6 +1,51 @@
-from rest_framework import viewsets, permissions, filters, generics
+import uuid
+from supabase import create_client
+from django.conf import settings
+from rest_framework import viewsets, permissions, filters, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .models import (
+    University, Category, Listing, SavedListing, Notification, User
+)
+from .serializers import (
+    UniversitySerializer, CategorySerializer, ListingSerializer,
+    SavedListingSerializer, NotificationSerializer, RegisterSerializer, UserSerializer
+)
+
+class SupabaseUploadURLView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        file_name = request.data.get('file_name', '')
+        file_type = request.data.get('file_type', 'image/jpeg')
+
+        if not file_name:
+            return Response({'error': 'file_name is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+        ext = file_name.rsplit('.', 1)[-1] if '.' in file_name else 'jpg'
+        path = f"listings/{uuid.uuid4()}.{ext}"
+
+        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+
+        result = supabase.storage.from_(settings.SUPABASE_STORAGE_BUCKET).create_signed_upload_url(path)
+
+        signed_url = result.get('signedURL') or result.get('signed_url', '')
+        token      = result.get('token', '')
+
+        # Public URL format for Supabase Storage
+        public_url = (
+            f"{settings.SUPABASE_URL}/storage/v1/object/public"
+            f"/{settings.SUPABASE_STORAGE_BUCKET}/{path}"
+        )
+
+        return Response({
+            'upload_url': signed_url,
+            'token': token,
+            'public_url': public_url,
+            'path': path,
+        })
+
 from .models import (
     University, Category, Listing, SavedListing, Notification, User
 )

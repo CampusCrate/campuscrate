@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email', 'better_auth_id', 'is_verified_student', 'university', 'profile_picture', 'phone_number']
+        fields = ['id', 'username', 'name', 'email', 'is_verified_student', 'university', 'profile_picture', 'phone_number', 'is_superuser']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

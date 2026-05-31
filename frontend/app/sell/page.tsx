@@ -1,19 +1,113 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Navbar from "../../components/Navbar";
-import { UploadCloud, ShieldCheck, MapPin, ChevronRight, ChevronLeft, Camera, Info, Tag } from "lucide-react";
+import { UploadCloud, MapPin, ChevronRight, ChevronLeft, Camera, Info, Tag, X, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import CustomSelect from "../../components/CustomSelect";
+import { useAuth } from "../../lib/AuthProvider";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+interface UploadedImage {
+  file: File;
+  publicUrl: string;
+  previewUrl: string;
+  uploading: boolean;
+  error?: string;
+}
 
 export default function SellPage() {
+  const { user, isPending } = useAuth();
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");
   const [meetupType, setMeetupType] = useState("on-campus");
+  const [images, setImages] = useState<UploadedImage[]>([]);
   const totalSteps = 3;
+
+  useEffect(() => {
+    if (!isPending && !user) {
+      router.push("/login");
+    }
+  }, [user, isPending, router]);
+
 
   const handleNext = () => setStep((s) => Math.min(s + 1, totalSteps));
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
+
+  const uploadImageToS3 = useCallback(async (file: File) => {
+    const token = localStorage.getItem("accessToken");
+    
+    // 1. Get pre-signed URL from Django
+    const res = await fetch(`${API_URL}/api/v1/listings/upload-url/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ file_name: file.name, file_type: file.type }),
+    });
+
+    if (!res.ok) throw new Error("Failed to get upload URL");
+    const { upload_url, token: uploadToken, public_url } = await res.json();
+
+    // 2. PUT file directly to Supabase Storage
+    const uploadRes = await fetch(upload_url, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": file.type,
+        "Authorization": `Bearer ${uploadToken}`
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) throw new Error("Failed to upload to Supabase Storage");
+
+    return public_url as string;
+  }, []);
+
+  const handleImageFiles = useCallback(async (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files).slice(0, 4 - images.length);
+    if (!newFiles.length) return;
+
+    const placeholders: UploadedImage[] = newFiles.map((file) => ({
+      file,
+      publicUrl: "",
+      previewUrl: URL.createObjectURL(file),
+      uploading: true,
+    }));
+    setImages((prev) => [...prev, ...placeholders]);
+
+    await Promise.all(
+      newFiles.map(async (file, i) => {
+        try {
+          const publicUrl = await uploadImageToS3(file);
+          setImages((prev) =>
+            prev.map((img) =>
+              img.file === file ? { ...img, publicUrl, uploading: false } : img
+            )
+          );
+        } catch {
+          setImages((prev) =>
+            prev.map((img) =>
+              img.file === file ? { ...img, uploading: false, error: "Upload failed" } : img
+            )
+          );
+        }
+      })
+    );
+  }, [images, uploadImageToS3]);
+
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   const categoryOptions = [
     { label: "Science & Tech", value: "science" },
@@ -23,6 +117,14 @@ export default function SellPage() {
     { label: "Apparel", value: "apparel" },
     { label: "Other", value: "other" },
   ];
+
+  if (isPending || !user) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
@@ -113,14 +215,56 @@ export default function SellPage() {
 
               <div className="space-y-8">
                 <div>
-                  <label className="block text-[14px] font-bold text-gray-800 mb-2">Item Photos</label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-[#f8f9fa] transition-colors cursor-pointer group bg-[#f8f9fa]/50">
-                    <div className="w-12 h-12 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-900 transition-transform">
-                      <UploadCloud className="w-5 h-5" />
+                  <label className="block text-[14px] font-bold text-gray-800 mb-2">
+                    Item Photos <span className="text-gray-400 font-normal">({images.length}/4)</span>
+                  </label>
+
+                  {/* Image grid */}
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 mb-3">
+                      {images.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.previewUrl} alt="preview" className="w-full h-full object-cover" />
+                          {img.uploading && (
+                            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                              <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+                            </div>
+                          )}
+                          {img.error && (
+                            <div className="absolute inset-0 bg-red-50/80 flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-red-500 text-center px-1">Failed</span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-gray-900/70 hover:bg-gray-900 flex items-center justify-center transition-colors"
+                          >
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <p className="font-bold text-gray-900 mb-1">Click or drag images here</p>
-                    <p className="text-[14px] text-gray-400 font-medium">Upload up to 4 photos. Well-lit photos sell faster!</p>
-                  </div>
+                  )}
+
+                  {/* Dropzone (hidden when 4 images) */}
+                  {images.length < 4 && (
+                    <label className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:bg-[#f8f9fa] transition-colors cursor-pointer bg-[#f8f9fa]/50">
+                      <div className="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-900">
+                        <UploadCloud className="w-4 h-4" />
+                      </div>
+                      <p className="font-bold text-gray-900 mb-1">Click or drag images here</p>
+                      <p className="text-[13px] text-gray-400 font-medium">Up to {4 - images.length} more photo{4 - images.length !== 1 ? 's' : ''}. Well-lit photos sell faster!</p>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageFiles(e.target.files)}
+                      />
+                    </label>
+                  )}
                 </div>
 
                 <div>

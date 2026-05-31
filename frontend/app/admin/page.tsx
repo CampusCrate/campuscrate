@@ -4,7 +4,9 @@ import Navbar from "../../components/Navbar";
 import { Settings, School, LayoutGrid, ShieldAlert, MoreHorizontal, Plus, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../lib/AuthProvider";
+import { useRouter } from "next/navigation";
 
 const API_URL = "http://127.0.0.1:8000/api/v1";
 
@@ -31,6 +33,9 @@ async function createUniversity(data: { name: string; slug: string }): Promise<U
 }
 
 export default function AdminDashboard() {
+  const { user, isPending: isAuthPending } = useAuth();
+  const router = useRouter();
+  
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
@@ -41,6 +46,15 @@ export default function AdminDashboard() {
     queryKey: ["universities"],
     queryFn: fetchUniversities,
   });
+
+  useEffect(() => {
+    if (!isAuthPending) {
+      if (!user || !user.is_superuser) {
+        router.push("/admin/login");
+      }
+    }
+  }, [user, isAuthPending, router]);
+
 
   const mutation = useMutation({
     mutationFn: createUniversity,
@@ -67,6 +81,14 @@ export default function AdminDashboard() {
       return;
     }
     mutation.mutate({ name: name.trim(), slug: slug.trim() });
+  }
+
+  if (isAuthPending || !user || !user.is_superuser) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
   }
 
   return (
