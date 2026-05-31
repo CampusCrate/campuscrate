@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Bell, User, Menu, X, ChevronDown, BadgeCheck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useSession, signOut } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 const profileLinks: [string, string][] = [
   ["My Listings", "/profile/listings"],
@@ -10,8 +12,9 @@ const profileLinks: [string, string][] = [
   ["Settings", "/profile/settings"],
 ];
 
-function ProfileModal({ onClose }: { onClose: () => void }) {
+function ProfileModal({ onClose, user }: { onClose: () => void, user: any }) {
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
@@ -25,14 +28,27 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
       <div ref={ref} className="w-72 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-[#f8f9fa] flex items-center justify-center text-gray-700 font-bold text-lg">W</div>
+            <div className="w-11 h-11 rounded-full bg-[#f8f9fa] flex items-center justify-center text-gray-700 font-bold text-lg uppercase">
+              {user?.name?.[0] || user?.email?.[0] || 'U'}
+            </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-[15px] flex items-center gap-1.5">wanjiku.s <BadgeCheck className="w-4 h-4 text-blue-600" /></h3>
-              <p className="text-[13px] text-gray-500 font-medium">Verified Student</p>
+              <h3 className="font-bold text-gray-900 text-[15px] flex items-center gap-1.5">
+                {user?.name || user?.email?.split('@')[0]}
+                {user?.is_verified_student && <BadgeCheck className="w-4 h-4 text-blue-600" />}
+              </h3>
+              <p className="text-[13px] text-gray-500 font-medium">
+                {user?.is_verified_student ? "Verified Student" : "Unverified Student"}
+              </p>
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-1.5 text-[12px] font-bold text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5">
-            <ShieldCheck className="w-3.5 h-3.5" /> ID Verified
+          <div className={`mt-3 flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-lg ${user?.is_verified_student ? 'text-green-700 bg-green-50 border border-green-100' : 'text-gray-500 bg-gray-50 border border-gray-100'}`}>
+            <ShieldCheck className="w-3.5 h-3.5" /> 
+            {user?.is_verified_student ? "ID Verified" : "Verification Pending"}
+            {!user?.is_verified_student && (
+              <Link href="/verify" onClick={onClose} className="ml-auto text-blue-600 hover:text-blue-700 hover:underline">
+                Verify Now
+              </Link>
+            )}
           </div>
         </div>
         <div className="py-2">
@@ -43,7 +59,7 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="border-t border-gray-100 p-2">
-          <button className="w-full text-left px-5 py-3 text-[14px] font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors">Sign Out</button>
+          <button onClick={async () => { await signOut(); router.push('/login'); onClose(); }} className="w-full text-left px-5 py-3 text-[14px] font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors">Sign Out</button>
         </div>
       </div>
     </div>
@@ -97,6 +113,9 @@ export default function Navbar() {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const { data: sessionData, isPending } = useSession();
+  const user = sessionData?.user;
+
   return (
     <>
       <nav className="border-b border-gray-100 bg-white px-4 md:px-6 py-4 shrink-0 sticky top-0 z-40">
@@ -111,14 +130,25 @@ export default function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden sm:flex items-center gap-4 md:gap-6">
-            <button onClick={() => { setShowNotifications(v => !v); setShowProfile(false); }} className="relative text-gray-400 hover:text-gray-900 transition-colors p-1">
-              <Bell className="w-[22px] h-[22px]" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-600 rounded-full"></span>
-            </button>
-            <button onClick={() => { setShowProfile(v => !v); setShowNotifications(false); }} className="flex items-center gap-1.5 text-gray-400 hover:text-gray-900 transition-colors p-1">
-              <User className="w-[22px] h-[22px]" />
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
+            {isPending ? (
+              <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse"></div>
+            ) : user ? (
+              <>
+                <button onClick={() => { setShowNotifications(v => !v); setShowProfile(false); }} className="relative text-gray-400 hover:text-gray-900 transition-colors p-1">
+                  <Bell className="w-[22px] h-[22px]" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-600 rounded-full"></span>
+                </button>
+                <button onClick={() => { setShowProfile(v => !v); setShowNotifications(false); }} className="flex items-center gap-1.5 text-gray-400 hover:text-gray-900 transition-colors p-1">
+                  <User className="w-[22px] h-[22px]" />
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 mr-2">
+                <Link href="/login" className="px-4 py-2 text-[14px] font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">Log in</Link>
+                <Link href="/signup" className="px-4 py-2 text-[14px] font-bold text-white bg-gray-900 hover:bg-black rounded-xl transition-colors">Sign up</Link>
+              </div>
+            )}
             <Link href="/sell" className="ml-1 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-full text-[14px] font-bold flex items-center gap-1.5 transition-colors shadow-sm whitespace-nowrap">
               + Sell
             </Link>
@@ -138,18 +168,31 @@ export default function Navbar() {
         {/* Mobile Drawer */}
         {mobileOpen && (
           <div className="sm:hidden border-t border-gray-100 mt-4 pt-4 pb-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-            <button onClick={() => { setShowNotifications(true); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-2 py-3 text-gray-700 font-semibold hover:bg-gray-50 rounded-xl transition-colors">
-              <Bell className="w-5 h-5 text-gray-400" /> Notifications
-              <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></span>
-            </button>
-            <button onClick={() => { setShowProfile(true); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-2 py-3 text-gray-700 font-semibold hover:bg-gray-50 rounded-xl transition-colors">
-              <User className="w-5 h-5 text-gray-400" /> Profile
-            </button>
+            {!user ? (
+              <>
+                <Link href="/login" onClick={() => setMobileOpen(false)} className="w-full flex items-center gap-3 px-2 py-3 text-gray-700 font-semibold hover:bg-gray-50 rounded-xl transition-colors">
+                  Log in
+                </Link>
+                <Link href="/signup" onClick={() => setMobileOpen(false)} className="w-full flex items-center gap-3 px-2 py-3 text-gray-700 font-semibold hover:bg-gray-50 rounded-xl transition-colors">
+                  Sign up
+                </Link>
+              </>
+            ) : (
+              <>
+                <button onClick={() => { setShowNotifications(true); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-2 py-3 text-gray-700 font-semibold hover:bg-gray-50 rounded-xl transition-colors">
+                  <Bell className="w-5 h-5 text-gray-400" /> Notifications
+                  <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></span>
+                </button>
+                <button onClick={() => { setShowProfile(true); setMobileOpen(false); }} className="w-full flex items-center gap-3 px-2 py-3 text-gray-700 font-semibold hover:bg-gray-50 rounded-xl transition-colors">
+                  <User className="w-5 h-5 text-gray-400" /> Profile
+                </button>
+              </>
+            )}
           </div>
         )}
       </nav>
 
-      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+      {showProfile && <ProfileModal user={user} onClose={() => setShowProfile(false)} />}
       {showNotifications && <NotificationsModal onClose={() => setShowNotifications(false)} />}
     </>
   );

@@ -16,12 +16,12 @@ export default function SellPage() {
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
   const categoryOptions = [
-    { label: "Faculty of Science & Tech", value: "science" },
-    { label: "Engineering Gear", value: "engineering" },
-    { label: "Hostel Essentials", value: "hostels" },
+    { label: "Science & Tech", value: "science" },
+    { label: "Engineering", value: "engineering" },
     { label: "Textbooks", value: "textbooks" },
     { label: "Electronics", value: "electronics" },
     { label: "Apparel", value: "apparel" },
+    { label: "Other", value: "other" },
   ];
 
   return (

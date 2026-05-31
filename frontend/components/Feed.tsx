@@ -1,55 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import ListingCard from "./ListingCard";
-import { SlidersHorizontal, ChevronDown, Check, MapPin, PackageSearch } from "lucide-react";
+import { PackageSearch } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useUniversities, type University } from "../hooks/useUniversities";
-
-function CampusDropdown({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { data: uniData = [] } = useUniversities();
-
-  const universities = [
-    { label: "All Campuses", value: "" },
-    ...uniData.map((u: University) => ({ label: u.name, value: u.slug })),
-  ];
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-  const selected = universities.find(u => u.value === value);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className={`pb-2 text-sm font-semibold transition-colors flex items-center gap-1.5 relative whitespace-nowrap ${value !== "" ? "text-gray-900" : "text-gray-400 hover:text-gray-900"}`}
-      >
-        <MapPin className="w-3.5 h-3.5" />
-        {selected?.label || "Campus"}
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
-        {value !== "" && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-gray-900 rounded-t-full"></span>}
-      </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.1)] py-1.5 z-30 min-w-[200px] animate-in fade-in slide-in-from-top-2 duration-150">
-          {universities.map(u => (
-            <button key={u.value} type="button" onClick={() => { onChange(u.value); setOpen(false); }} className="w-full flex items-center justify-between px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              {u.label}
-              {value === u.value && <Check className="w-4 h-4 text-blue-700" />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import CampusSelect from "./CampusSelect";
 
 export default function Feed() {
   const [activeFilter, setActiveFilter] = useState("All");
@@ -68,32 +23,30 @@ export default function Feed() {
   const simpleFilters = ["All", "Newest", "Verified Only"];
 
   return (
-    <section className="px-4 md:px-6 max-w-7xl mx-auto py-8 mb-20 w-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-2 border-b border-gray-100 pb-0">
-        <h2 className="text-[1.15rem] font-bold text-gray-900 tracking-tight pb-2 shrink-0">Fresh on the feed</h2>
-        
-        <div className="flex items-center gap-5 md:gap-6 overflow-x-auto w-full sm:w-auto scrollbar-hide pb-0">
-          {simpleFilters.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`whitespace-nowrap pb-2 text-[13.5px] font-semibold transition-colors relative ${
-                activeFilter === filter ? "text-gray-900" : "text-gray-400 hover:text-gray-900"
-              }`}
-            >
-              {filter}
-              {activeFilter === filter && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-gray-900 rounded-t-full"></span>}
-            </button>
-          ))}
-
-          <div className="pb-2">
-            <CampusDropdown value={campus} onChange={setCampus} />
+    <section className="px-4 md:px-6 max-w-7xl mx-auto py-8 mb-20 w-full">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-8 gap-4 border-b border-gray-100 pb-0">
+        <div className="flex flex-col gap-4 w-full lg:w-auto">
+          <h2 className="text-[1.25rem] font-bold text-gray-900 tracking-tight">Fresh on the feed</h2>
+          
+          <div className="flex items-center gap-5 pb-0 -mb-[1px] flex-wrap">
+            {simpleFilters.map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`whitespace-nowrap pb-3 text-[13.5px] font-semibold transition-colors relative ${
+                  activeFilter === filter ? "text-gray-900" : "text-gray-400 hover:text-gray-900"
+                }`}
+              >
+                {filter}
+                {activeFilter === filter && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-gray-900 rounded-t-full"></span>}
+              </button>
+            ))}
           </div>
-
-          <button className="flex items-center gap-1.5 whitespace-nowrap pb-2 text-[13.5px] font-semibold text-gray-400 hover:text-gray-900 transition-colors shrink-0">
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Filters
-          </button>
+        </div>
+        
+        {/* Right side filters */}
+        <div className="flex items-center pb-3 w-full lg:w-[220px] shrink-0 z-10 relative">
+          <CampusSelect value={campus} onChange={setCampus} variant="outline" />
         </div>
       </div>
 

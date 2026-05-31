@@ -1,65 +1,76 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, MapPin, ChevronDown, Check, CheckCircle2, Circle, Loader2 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
-import { useUniversities } from "../../hooks/useUniversities";
-
-function UniversitySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { data: universitiesData = [], isLoading } = useUniversities();
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const selected = universitiesData.find(u => u.slug === value);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button 
-        type="button" 
-        onClick={() => setOpen(!open)}
-        className="w-full bg-[#f8f9fa] border border-transparent hover:border-gray-200 rounded-xl px-4 py-3.5 text-[15px] font-medium text-left flex items-center justify-between transition-colors focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white"
-      >
-        <span className={selected ? "text-gray-900" : "text-gray-400"}>
-          {isLoading ? "Loading campuses..." : selected ? selected.name : "Select campus..."}
-        </span>
-        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-300" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-      </button>
-      {open && !isLoading && (
-        <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-          {universitiesData.length === 0 ? (
-            <p className="px-3 py-3 text-[13px] text-gray-400 font-medium text-center">No universities available yet.</p>
-          ) : (
-            universitiesData.map(u => (
-              <button key={u.id} type="button" onClick={() => { onChange(u.slug); setOpen(false); }} className="w-full flex items-center justify-between px-3 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left">
-                <span className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /> {u.name}</span>
-                {value === u.slug && <Check className="w-4 h-4 text-gray-900" />}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import { useState } from "react";
+import CampusSelect from "../../components/CampusSelect";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
   const [university, setUniversity] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
   
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   
   const pwMatch = password && confirmPassword && password === confirmPassword;
+
+  const handleCredentialsSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pwMatch || !hasMinLength || !hasNumber || !hasSpecial) return;
+    
+    setLoading(true);
+    setError("");
+    
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/auth/register/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          username: email.split('@')[0], 
+          email: email, 
+          password: password 
+        }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || Object.values(data).join(', ') || "Failed to create account. Please try again.");
+        setLoading(false);
+      } else {
+        // Auto-login upon successful signup
+        const loginRes = await fetch("http://localhost:8000/api/v1/auth/login/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username: email, password }),
+        });
+
+        if (loginRes.ok) {
+          const authData = await loginRes.json();
+          localStorage.setItem("accessToken", authData.access);
+          localStorage.setItem("refreshToken", authData.refresh);
+          window.location.href = "/"; // Force hard redirect to re-hydrate context
+        } else {
+          router.push("/login?registered=true");
+        }
+      }
+    } catch (err) {
+      setError("An unexpected error occurred.");
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    // Disabled / Unimplemented for now
+  };
 
   return (
     <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4 py-12">
@@ -74,7 +85,7 @@ export default function SignupPage() {
             <p className="text-[14px] text-gray-400 font-medium tracking-tight">Join your campus marketplace today.</p>
           </div>
 
-          <button type="button" className="w-full bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-[14px] py-3.5 rounded-xl flex items-center justify-center gap-3 transition-all mb-6 relative overflow-hidden group">
+          <button onClick={handleGoogleSignup} type="button" className="w-full bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-[14px] py-3.5 rounded-xl flex items-center justify-center gap-3 transition-all mb-6 relative overflow-hidden group">
             <svg className="w-5 h-5 absolute left-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.31-1 2.41-2.12 3.14v2.6h3.43c2.01-1.85 3.17-4.58 3.17-7.75Z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.43-2.6c-.98.66-2.23 1.05-3.85 1.05-2.96 0-5.46-2-6.36-4.69H2.07v2.68C3.89 20.4 7.64 23 12 23Z" fill="#34A853"/>
@@ -90,16 +101,24 @@ export default function SignupPage() {
             <div className="h-px bg-gray-100 flex-1"></div>
           </div>
           
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleCredentialsSignup}>
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 text-center">
+                {error}
+              </div>
+            )}
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">University</label>
-              <UniversitySelect value={university} onChange={setUniversity} />
+              <CampusSelect value={university} onChange={setUniversity} variant="default" />
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Email Address</label>
               <input 
                 type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
                 className="w-full bg-[#f8f9fa] border border-transparent hover:border-gray-200 rounded-xl px-4 py-3.5 text-[15px] font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
               />
             </div>
@@ -143,11 +162,11 @@ export default function SignupPage() {
             </div>
             
             <button 
-              type="button"
+              type="submit"
               className="w-full bg-gray-900 hover:bg-black text-white font-bold text-[15px] py-4 rounded-xl transition-all shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)] mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!(hasMinLength && hasNumber && hasSpecial && pwMatch)}
+              disabled={!(hasMinLength && hasNumber && hasSpecial && pwMatch) || loading}
             >
-              Sign up
+              {loading ? "Signing up..." : "Sign up"}
             </button>
           </form>
           

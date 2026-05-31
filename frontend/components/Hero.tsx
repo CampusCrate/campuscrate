@@ -1,18 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Search, MapPin } from "lucide-react";
-import CustomSelect from "./CustomSelect";
-import { useUniversities } from "../hooks/useUniversities";
+import { Search } from "lucide-react";
+import CampusSelect from "./CampusSelect";
 
 export default function Hero() {
   const [university, setUniversity] = useState("");
-  const { data: universitiesData = [] } = useUniversities();
-  
-  const uniOptions = [
-    { label: "All Campuses", value: "" },
-    ...universitiesData.map(u => ({ label: u.name, value: u.slug }))
-  ];
 
   return (
     <section className="py-8 md:py-10 px-6 max-w-7xl mx-auto">
@@ -36,12 +29,10 @@ export default function Hero() {
             />
           </div>
           <div className="flex items-center border-t md:border-t-0 md:border-l border-gray-100 md:border-gray-200 pt-2 md:pt-0 ml-1 md:ml-2 px-1 md:px-3 shrink-0">
-            <CustomSelect 
+            <CampusSelect 
               variant="ghost"
-              options={uniOptions}
               value={university}
               onChange={setUniversity}
-              icon={<MapPin className="w-[18px] h-[18px]" />}
             />
           </div>
           <button className="bg-blue-950 hover:bg-blue-900 text-white px-8 py-3.5 md:py-3 mt-2 md:mt-0 rounded-2xl md:rounded-full font-semibold transition-colors shrink-0 shadow-sm md:ml-2 w-full md:w-auto">

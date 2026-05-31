@@ -1,11 +1,25 @@
-from rest_framework import viewsets, permissions, filters
+from rest_framework import viewsets, permissions, filters, generics
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import (
-    University, Category, Listing, SavedListing, Notification
+    University, Category, Listing, SavedListing, Notification, User
 )
 from .serializers import (
     UniversitySerializer, CategorySerializer, ListingSerializer,
-    SavedListingSerializer, NotificationSerializer
+    SavedListingSerializer, NotificationSerializer, RegisterSerializer, UserSerializer
 )
+
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = RegisterSerializer
+
+class CurrentUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
 
 class UniversityViewSet(viewsets.ModelViewSet):
     queryset = University.objects.all()
@@ -23,15 +37,16 @@ class ListingViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         # Tie listing to the logged in user
-        # user will be mapped from better_auth token later
-        serializer.save()
+        serializer.save(seller=self.request.user)
 
 class SavedListingViewSet(viewsets.ModelViewSet):
     serializer_class = SavedListingSerializer
 
     def get_queryset(self):
-        # We will filter by the logged in user via better_auth mappings later
-        return SavedListing.objects.all()
+        # Filter by the logged in user
+        if self.request.user.is_authenticated:
+            return SavedListing.objects.filter(user=self.request.user)
+        return SavedListing.objects.none()
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer

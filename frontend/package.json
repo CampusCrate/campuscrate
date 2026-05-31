@@ -11,7 +11,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
     "@tanstack/react-query-devtools": "^5.100.14",
-    "better-auth": "^1.6.12",
+    "better-sqlite3": "^11.5.0",
     "lucide-react": "^1.17.0",
     "next": "16.2.6",
     "react": "19.2.4",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -26,5 +27,18 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "kysely": "0.27.4",
+    "react": "$react",
+    "react-dom": "$react-dom"
+  },
+  "resolutions": {
+    "kysely": "0.27.4",
+    "react": "$react",
+    "react-dom": "$react-dom"
   }
 }
+
+
+

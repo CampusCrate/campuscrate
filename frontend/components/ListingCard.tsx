@@ -1,5 +1,8 @@
-import { Heart, BadgeCheck } from "lucide-react";
+"use client";
+
+import { Bookmark, BadgeCheck } from "lucide-react";
 import Link from "next/link";
+import { useSavedListings } from "../hooks/useSavedListings";
 
 export interface ListingCardProps {
   id: string;
@@ -11,9 +14,18 @@ export interface ListingCardProps {
   location: string;
 }
 
-export default function ListingCard({
-  id, imageSrc, category, title, price, condition, location
-}: ListingCardProps) {
+export default function ListingCard(props: ListingCardProps) {
+  const { id, imageSrc, category, title, price, condition, location } = props;
+  const { toggleSaved, isSaved } = useSavedListings();
+  
+  const saved = isSaved(id);
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigating to item
+    e.stopPropagation();
+    toggleSaved(props);
+  };
+
   return (
     <Link href={`/item/${id}`} className="group cursor-pointer flex flex-col h-full w-full">
       <div className="relative aspect-[4/3] w-full bg-[#f8f9fa] rounded-2xl mb-4 overflow-hidden shrink-0">
@@ -23,9 +35,16 @@ export default function ListingCard({
           <div className="w-full h-full flex items-center justify-center text-gray-300">No Image</div>
         )}
         
-        {/* Only top right heart icon */}
-        <button className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white/90 transition-all opacity-0 group-hover:opacity-100">
-          <Heart className="w-4 h-4 fill-current" />
+        {/* Bookmark icon */}
+        <button 
+          onClick={handleSave}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+            saved 
+            ? "text-blue-600 bg-white/100 shadow-sm opacity-100" 
+            : "text-gray-400 opacity-0 group-hover:opacity-100 hover:text-blue-600 hover:bg-white/90"
+          }`}
+        >
+          <Bookmark className={`w-4 h-4 ${saved ? "fill-current" : ""}`} />
         </button>
       </div>
 
