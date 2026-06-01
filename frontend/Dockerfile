@@ -8,7 +8,7 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
 # Copy workspace config if it exists
 COPY pnpm-workspace.yaml* ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Stage 2 — Build the application
 FROM node:20-alpine AS builder
