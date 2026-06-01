@@ -5,6 +5,7 @@ import Navbar from "../../components/Navbar";
 import { UploadCloud, MapPin, ChevronRight, ChevronLeft, Camera, Info, Tag, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import CustomSelect from "../../components/CustomSelect";
 import { useAuth } from "../../lib/AuthProvider";
 
@@ -26,6 +27,11 @@ export default function SellPage() {
   const [category, setCategory] = useState("");
   const [meetupType, setMeetupType] = useState("on-campus");
   const [images, setImages] = useState<UploadedImage[]>([]);
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [meetupLocation, setMeetupLocation] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const totalSteps = 3;
 
   useEffect(() => {
@@ -71,7 +77,14 @@ export default function SellPage() {
 
   const handleImageFiles = useCallback(async (files: FileList | null) => {
     if (!files) return;
-    const newFiles = Array.from(files).slice(0, 4 - images.length);
+    const validFiles = Array.from(files).filter(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is too large (max 5MB)`);
+        return false;
+      }
+      return true;
+    });
+    const newFiles = validFiles.slice(0, 4 - images.length);
     if (!newFiles.length) return;
 
     const placeholders: UploadedImage[] = newFiles.map((file) => ({
@@ -107,6 +120,56 @@ export default function SellPage() {
       URL.revokeObjectURL(prev[index].previewUrl);
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  const handleSubmit = async () => {
+    if (!title || !price || !category || !description || !meetupLocation) {
+      toast.error("Please fill in all details");
+      return;
+    }
+    if (images.length === 0) {
+      toast.error("Please add at least one image");
+      return;
+    }
+    
+    // We get token & user from useAuth
+    // Assume user is globally available here. But wait, `useAuth` is already called at top!
+    if (!user?.phone_number) {
+      toast.error("You must configure your phone number in Settings before selling.");
+      router.push("/profile/settings");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(`${API_URL}/api/v1/listings/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title,
+          price,
+          description,
+          category_slug: category,
+          meetup_location: meetupLocation,
+          is_on_campus: meetupType === 'on-campus',
+          condition: "GOOD",
+          image_urls: images.filter(img => img.publicUrl).map(img => img.publicUrl)
+        })
+      });
+
+      if (!res.ok) throw new Error("Failed to create listing");
+      
+      toast.success("Listing published successfully!");
+      router.push("/profile/listings");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to publish listing");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const categoryOptions = [
@@ -160,7 +223,7 @@ export default function SellPage() {
               <div className="space-y-7">
                 <div>
                   <label className="block text-[14px] font-bold text-gray-800 mb-2">Title</label>
-                  <input type="text" placeholder="e.g. TI-30 Calculator, Almost New" className="w-full border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium text-[15px]" />
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. TI-30 Calculator, Almost New" className="w-full border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium text-[15px]" />
                 </div>
 
                 <div>
@@ -191,13 +254,13 @@ export default function SellPage() {
                   <label className="block text-[14px] font-bold text-gray-800 mb-2">Price (KES)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">KES</span>
-                    <input type="number" placeholder="1,500" className="w-full border border-gray-200 rounded-xl pl-14 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium text-[15px]" />
+                    <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="1,500" className="w-full border border-gray-200 rounded-xl pl-14 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium text-[15px]" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-[14px] font-bold text-gray-800 mb-2">Description</label>
-                  <textarea rows={6} placeholder="Any details the buyer should know? E.g. Missing original box, barely used, comes with charger..." className="w-full border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 resize-none placeholder:text-gray-400 font-medium text-[15px]"></textarea>
+                  <textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Any details the buyer should know? E.g. Missing original box, barely used, comes with charger..." className="w-full border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 resize-none placeholder:text-gray-400 font-medium text-[15px]"></textarea>
                 </div>
               </div>
             </div>
@@ -277,7 +340,7 @@ export default function SellPage() {
                   <label className="block text-[14px] font-bold text-gray-800 mb-2">Detailed Meetup Location</label>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-                    <input type="text" placeholder={meetupType === 'on-campus' ? "e.g. Main library entrance, Block C lobby..." : "e.g. Ongata Rongai, near the mall..."} className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium text-[15px]" />
+                    <input type="text" value={meetupLocation} onChange={(e) => setMeetupLocation(e.target.value)} placeholder={meetupType === 'on-campus' ? "e.g. Main library entrance, Block C lobby..." : "e.g. Ongata Rongai, near the mall..."} className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium text-[15px]" />
                   </div>
                 </div>
               </div>
@@ -299,9 +362,9 @@ export default function SellPage() {
                 Next <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <Link href="/" className="bg-gray-900 hover:bg-black text-white px-10 py-3.5 rounded-[0.85rem] font-bold flex items-center gap-2 shadow-sm transition-all hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)]">
-                Submit Listing
-              </Link>
+              <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="bg-gray-900 hover:bg-black text-white px-10 py-3.5 rounded-[0.85rem] font-bold flex items-center gap-2 shadow-sm transition-all hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)] disabled:opacity-50">
+                {isSubmitting ? "Publishing..." : "Submit"}
+              </button>
             )}
           </div>
           

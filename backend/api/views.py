@@ -1,9 +1,11 @@
 import uuid
 from supabase import create_client
 from django.conf import settings
+from django.http import JsonResponse
 from rest_framework import viewsets, permissions, filters, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
 from .models import (
     University, Category, Listing, SavedListing, Notification, User
 )
@@ -11,6 +13,13 @@ from .serializers import (
     UniversitySerializer, CategorySerializer, ListingSerializer,
     SavedListingSerializer, NotificationSerializer, RegisterSerializer, UserSerializer
 )
+
+@api_view(['GET'])
+@permission_classes([])
+def health_check(request):
+    """Simple health check endpoint for Docker/load balancer liveness probes."""
+    return JsonResponse({"status": "ok"})
+
 
 class SupabaseUploadURLView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -66,6 +75,12 @@ class CurrentUserView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
 class UniversityViewSet(viewsets.ModelViewSet):
     queryset = University.objects.all()
     serializer_class = UniversitySerializer
@@ -80,8 +95,45 @@ class ListingViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description', 'meetup_location']
     
+    def get_queryset(self):
+        qs = super().get_queryset()
+        seller_id = self.request.query_params.get('seller')
+        if seller_id:
+            qs = qs.filter(seller_id=seller_id)
+        return qs
+        
+    def create(self, request, *args, **kwargs):
+        category_slug = request.data.get('category_slug')
+        category = None
+        if category_slug:
+            # Create the category automatically if it is missing
+            from .models import Category
+            category, created = Category.objects.get_or_create(
+                slug=category_slug,
+                defaults={'name': category_slug.replace('-', ' ').title(), 'icon_name': 'tag'}
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Save with user and category
+        instance = serializer.save(seller=request.user, category=category)
+        
+        # Create images
+        from .models import ListingImage
+        image_urls = request.data.get('image_urls', [])
+        is_primary = True
+        for url in image_urls:
+            ListingImage.objects.create(listing=instance, image_url=url, is_primary=is_primary)
+            is_primary = False
+            
+        headers = self.get_success_headers(serializer.data)
+        
+        # Retrieve fresh data to include images
+        fresh_data = self.get_serializer(instance).data
+        return Response(fresh_data, status=status.HTTP_201_CREATED, headers=headers)
+
     def perform_create(self, serializer):
-        # Tie listing to the logged in user
         serializer.save(seller=self.request.user)
 
 class SavedListingViewSet(viewsets.ModelViewSet):

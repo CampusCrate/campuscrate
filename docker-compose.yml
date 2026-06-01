@@ -31,6 +31,13 @@ services:
     networks:
       - campuscrate-net
     restart: unless-stopped
+    # Health check: wait until Django is actually serving requests
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # ── Next.js Frontend ────────────────────────────────────────────────────────
   frontend:
@@ -40,16 +47,15 @@ services:
       args:
         # Backend URL the BROWSER will call (must be accessible from user's machine)
         NEXT_PUBLIC_API_URL: "http://localhost:8000"
-        NEXT_PUBLIC_S3_BUCKET_URL: "https://your-bucket.s3.amazonaws.com"
     image: campuscrate-frontend
     container_name: campuscrate-frontend
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:8000"
-      NEXT_PUBLIC_S3_BUCKET_URL: "https://your-bucket.s3.amazonaws.com"
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - campuscrate-net
     restart: unless-stopped

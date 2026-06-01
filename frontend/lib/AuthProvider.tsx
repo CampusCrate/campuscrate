@@ -19,6 +19,7 @@ interface AuthContextType {
   isPending: boolean;
   login: (access: string, refresh: string) => void;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          cache: 'no-store'
         });
         if (res.ok) {
           const data = await res.json();
@@ -100,8 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+  const updateUser = (data: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isPending, login, logout }}>
+    <AuthContext.Provider value={{ user, isPending, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

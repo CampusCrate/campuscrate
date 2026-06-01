@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import (
 from .views import (
     UniversityViewSet, CategoryViewSet, ListingViewSet,
     SavedListingViewSet, NotificationViewSet, RegisterView, CurrentUserView,
-    SupabaseUploadURLView,
+    SupabaseUploadURLView, health_check,
 )
 
 router = DefaultRouter()
@@ -24,5 +24,6 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
     path('auth/me/', CurrentUserView.as_view(), name='auth_me'),
     path('listings/upload-url/', SupabaseUploadURLView.as_view(), name='supabase_upload_url'),
+    path('health/', health_check, name='health_check'),
     path('', include(router.urls)),
 ]
