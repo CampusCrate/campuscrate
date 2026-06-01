@@ -17,7 +17,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isPending: boolean;
-  login: (access: string, refresh: string) => void;
+  login: (access: string, refresh: string, redirectRoute?: string) => void;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
 }

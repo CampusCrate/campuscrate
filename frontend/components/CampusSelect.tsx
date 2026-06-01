@@ -7,7 +7,7 @@ import { useUniversities } from "../hooks/useUniversities";
 interface CampusSelectProps {
   value: string;
   onChange: (val: string) => void;
-  variant?: "default" | "ghost" | "underline";
+  variant?: "default" | "ghost" | "underline" | "outline";
 }
 
 export default function CampusSelect({ value, onChange, variant = "default" }: CampusSelectProps) {

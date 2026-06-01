@@ -20,10 +20,8 @@ COPY . .
 
 # Build-time env vars (non-secret, baked into JS bundle)
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ARG NEXT_PUBLIC_S3_BUCKET_URL=https://your-bucket.s3.amazonaws.com
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_S3_BUCKET_URL=$NEXT_PUBLIC_S3_BUCKET_URL
 
 RUN pnpm build
 
